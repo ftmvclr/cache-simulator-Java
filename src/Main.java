@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HexFormat;
 import java.util.Scanner;
 
 import src.Cache.cacheType;
@@ -53,7 +54,8 @@ public class Main {
 			else return; // error
 		}
 		else { // op, address, size, data | S or M 
-			String data = instruction.substring(15);
+			String dataString = instruction.substring(15);
+			byte[] data = HexFormat.of().parseHex(dataString);
 			if(op == 'S') {
 				
 			}
