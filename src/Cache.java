@@ -3,13 +3,14 @@ package src;
 public class Cache {
 	int s; int b; int E;
 	String data;
-	char valid;
-	enum type {L1i, L1d, L2};
+	boolean valid; 
+	enum cacheType {L1i, L1d, L2};
+	cacheType type;
 	
-	Cache(int s, int b, int E, String data){
+	Cache(int s, int b, int E, cacheType type){
 		this.s = s; this.b = b;
 		this.E = E;
-		this.data = data;
+		this.type = type;
 	}
 	
 	void dataLoad(){
