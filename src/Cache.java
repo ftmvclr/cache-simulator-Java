@@ -48,7 +48,9 @@ public class Cache {
 		Line[] lines = cacheLines[set];
 		int min = 0; int count = 0;
 		for(Line line : lines) { 
-			if(line == null) continue;
+			if(line == null) {
+				return count;
+			};
 			if (!line.valid) {
 				return count;
 			}
