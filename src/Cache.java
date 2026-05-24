@@ -24,6 +24,7 @@ public class Cache {
 		Line[] linesInCorrectSet = cacheLines[searchedSet];
 		int count = 0;
 		for(Line line : linesInCorrectSet) {
+			if(line == null) continue;
 			if (line.tag == searchedTag) {
 				recentlyUsedLine = line;
 				recentlyUsedLineNo = count;
@@ -47,6 +48,7 @@ public class Cache {
 		Line[] lines = cacheLines[set];
 		int min = 0; int count = 0;
 		for(Line line : lines) { 
+			if(line == null) continue;
 			if (!line.valid) {
 				return count;
 			}

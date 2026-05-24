@@ -8,7 +8,24 @@ import java.util.HexFormat;
 import java.util.Scanner;
 
 enum byteType{instruction, data}
-
+/* general idea review:
+ * at first nothing in caches
+ * we should immediately miss
+ * what happens when it misses?
+ * it eventually calls fetchRAM
+ * which calls put to cache -> it should indeed put to cache here
+ * what if it hits at L1 (load for now)
+ * good for it! just move on
+ * what if it hits at L2?
+ * move that data to L1 as well.
+ * it does that!?
+ * ok what if it is now store?
+ * L1 hit? -> write to L2 and RAM as well(the new thing)
+ * L2 hit? -> good, write to RAM too
+ * no hit? -> even better (sorry dear clock cycles, write to RAM only)
+ * modify is just 2 function calls i believe.
+ * and that is pretty much it...
+ * */
 public class Main {
 	static int L1s; static int L2s; // how many bits to represent set count
 	static int L1b; static int L2b; // how many bits to represent block size (64 bytes would be 6 bits)
@@ -42,6 +59,10 @@ public class Main {
 			decipherInstruction(singleInstruction);
 		}
 		insScanner.close();
+		
+		System.out.println("L1I-hits: " + L1Ihits + " L1I-misses: " + L1Imisses + " L1I-evictions: " + L1Ievictions + "\n"
+				+ "L1D-hits: " + L1Dhits + " L1D-misses: " + L1Dmisses + " L1D-evictions: " + L1Devictions + " \n"
+				+ "L2-hits: " + L2hits + " L2-misses: " + L2misses + " L2-evictions: " + L2evictions );
 	}
 	// op, address, size ^ op, address, size, data
 	static void decipherInstruction(String instruction) {
@@ -115,7 +136,7 @@ public class Main {
 			
 			L2.search(address, size); // so it sets the global variables
 			L2.recentlyUsedLine.overwriteDataInsideBlock(L2.offset, size, data);
-			
+			L2hits++;
 			// also write to ram
 			storeRAM(address, size, data);
 		}
@@ -123,6 +144,7 @@ public class Main {
 		else if(L2.search(address, size)) {
 			L1Imisses++; L2hits++;
 			L2.recentlyUsedLine.overwriteDataInsideBlock(L2.offset, size, data);
+			storeRAM(address, size, data);
 		}
 		else {
 			// not found? good honestly, just overwrite ram
@@ -162,13 +184,16 @@ public class Main {
 		}
 	}
 	
-	static void putToCache(Cache cache, byte[] block, int address) { // TODO
+	static void putToCache(Cache cache, byte[] block, int address) {
 		cache.tagAndSetIdentifier(address);
 		int tag = cache.searchedTag;
 		int set = cache.searchedSet; 
 		int lineNo = cache.availableLine(set);
 		Line line = new Line(true, block, tag, time++);
-		if(cache.cacheLines[set][lineNo].valid) {
+		if (cache.cacheLines[set][lineNo] == null) {
+			cache.cacheLines[set][lineNo] = line;
+		}
+		else if(cache.cacheLines[set][lineNo].valid) {
 			// victim, eviction
 			switch(cache.type) {
 			case L1i:
