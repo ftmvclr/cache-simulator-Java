@@ -5,25 +5,31 @@ public class Cache {
 	int s; int b; int E; // bit counts 
 	Line cacheLines[][];
 	cacheType type;
-	int tag;
-	int set;
+	private int searchedTag;
+	int searchedSet;
 	int offset;
+	Line recentlyUsedLine;
+	int recentlyUsedLineNo;
 	
 	Cache(int s, int b, int E, cacheType type){
 		this.s = s; this.b = b;
 		this.E = E;
 		this.type = type;
-		cacheLines = new Line[(int) Math.pow(2, s)][E]; // S by E cache.
+		cacheLines = new Line[1 << s][E]; // S by E cache.
 	}
 	Cache(){}
 	
 	boolean search(int address, int size){
 		tagAndSetIdentifier(address); // filled the fields tag and set (and offset)
-		Line[] linesInCorrectSet = cacheLines[set];
+		Line[] linesInCorrectSet = cacheLines[searchedSet];
+		int count = 0;
 		for(Line line : linesInCorrectSet) {
-			if (line.tag == tag) {
+			if (line.tag == searchedTag) {
+				recentlyUsedLine = line;
+				recentlyUsedLineNo = count;
 				return true;
 			}
+			count++;
 		}
 		return false;
 	}
@@ -31,8 +37,12 @@ public class Cache {
 	void tagAndSetIdentifier(int address) {
 		offset = address & ((1 << b) - 1);  // instead of Math.pow
 		address = address >>> b;
-		set = address & ((1 << s) - 1); // instead of Maht.pow 2, s - 1
+		searchedSet = address & ((1 << s) - 1); // instead of Maht.pow 2, s - 1
 		address = address >>> s;
-		tag = address;
+		searchedTag = address;
+	}
+	
+	int availableLine() { // TODO
+		return -1;
 	}
 }

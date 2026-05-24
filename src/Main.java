@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.HexFormat;
 import java.util.Scanner;
 
+enum byteType{instruction, data}
+
 public class Main {
 	static int L1s; static int L2s; // how many bits to represent set count
 	static int L1b; static int L2b; // how many bits to represent block size (64 bytes would be 6 bits)
@@ -45,7 +47,6 @@ public class Main {
 		char op = instruction.charAt(0);
 		String addressString = instruction.substring(2, 10);
 		int address = Integer.parseUnsignedInt(addressString, 16);
-//		tagAndSetIdentifier(address);
 		short lastCommaIndex = (short)instruction.lastIndexOf(','); 
 		int size = instruction.charAt(12) - '0';
 		
@@ -65,12 +66,12 @@ public class Main {
 				store(address, size, data);
 			}
 			else if(op == 'M') {
-				modify();
+				modify(address, size, data);
 			}
 			else return; // error
 		}		
 	}
-	
+	// size is redundant for this project
 	static void dataLoad(int address, int size){
 		// search the L1d cache, found? HIT 
 		if(L1data.search(address, size)) {
@@ -79,43 +80,92 @@ public class Main {
 		// not found? search L2 cache, found HIT
 		else if(L2.search(address, size)) {
 			L1Dmisses++; L2hits++;
-			putToCache(L1data);
+			putToCache(L1data, L2.recentlyUsedLine.data);
 		}
 		else {
 			// not found? search the RAM, fetch it
-			L2misses++;
-			fetchRAM(address, size);
+			L1Dmisses++; L2misses++;
+			fetchRAM(address, size, src.byteType.data);
 		}
 	}
+	// size is redundant for this project
 	static void instLoad(int address, int size) {
 		// search the L1i cache, found? HIT 
+		if(L1instruction.search(address, size)) {
+			L1Ihits++;
+		}
 		// not found? search L2 cache, found HIT
-		// not found? search the RAM, fetch it
+		else if(L2.search(address, size)) {
+			L1Imisses++; L2hits++;
+			putToCache(L1instruction, L2.recentlyUsedLine.data);
+		}
+		else {
+			// not found? search the RAM, fetch it
+			L1Imisses++; L2misses++;
+			fetchRAM(address, size, src.byteType.instruction);
+		}
 	}
 	
 	static void store(int address, int size, byte[] data) {
-		// search the L1d cache, found it? Write-HIT -> find the least recently used one somehow, overwrite
+		if(L1data.search(address, size)) {
+			L1Dhits++;
+			L1data.recentlyUsedLine.overwriteDataInsideBlock(L1data.offset, size, data);
+			// also write to L2 
+			
+			L2.search(address, size); // so it sets the global variables
+			L2.recentlyUsedLine.overwriteDataInsideBlock(L2.offset, size, data);
+			
+			// also write to ram
+			storeRAM(address, size, data);
+		}
 		// not found? search L2 cache, found HIT
-		// not found? search the RAM, fetch it
+		else if(L2.search(address, size)) {
+			L1Imisses++; L2hits++;
+			L2.recentlyUsedLine.overwriteDataInsideBlock(L2.offset, size, data);
+		}
+		else {
+			// not found? good honestly, just overwrite ram
+			L1Imisses++; L2misses++;
+			storeRAM(address, size, data);
+		}
 	}
 	
-	static void modify() {
-		// load followed by a store
+	static void modify(int address, int size, byte[] block) {
+		// data load followed by a store
+		dataLoad(address, size);
+		store(address, size, block);
 	}
 	
-	static byte[] fetchRAM(int address, int size) {
-		int blockSize = (int) Math.pow(2, L1b);
+	static byte[] fetchRAM(int address, int size, byteType byteType) {
+		int blockSize = 1 << L1b; // L2b is no different btw
 		int startingAddressOffset = address % blockSize;
 		int startingAddress = address - startingAddressOffset;
 		byte[] fetchedData = new byte[blockSize];
 		for(int i = 0; i < blockSize; i++) {
 			fetchedData[i] = RAM[startingAddress + i];
 		}
+		putToCache(L2, fetchedData);
+		if(byteType == src.byteType.data) {
+			putToCache(L1data, fetchedData);
+		} 
+		else if (byteType == src.byteType.instruction) {
+			putToCache(L1instruction, fetchedData);
+		}
 		return null;
 	}
 	
-	static void putToCache(Cache cache) {
-		
+	static void storeRAM(int address, int size, byte[] dataToWrite) {
+		// no-write allocate :D
+		for(int i = 0; i < size; i++) {
+			RAM[address + i] = dataToWrite[i];
+		}
+	}
+	
+	static void putToCache(Cache cache, byte[] block) { // TODO
+		// this should initialize lines
+		// and put them to their appropriate positions
+		// in cache's field cacheLines[set][whichever feasible]
+		// should handle evictions somehow
 	}
 	
 	static void initializeCaches(){
