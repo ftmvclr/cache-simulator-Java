@@ -5,7 +5,7 @@ public class Cache {
 	int s; int b; int E; // bit counts 
 	Line cacheLines[][];
 	cacheType type;
-	private int searchedTag;
+	int searchedTag;
 	int searchedSet;
 	int offset;
 	Line recentlyUsedLine;
@@ -42,7 +42,19 @@ public class Cache {
 		searchedTag = address;
 	}
 	
-	int availableLine() { // TODO
-		return -1;
+	// return an invalid one OR the least recently used
+	int availableLine(int set) { // TODO
+		Line[] lines = cacheLines[set];
+		int min = 0; int count = 0;
+		for(Line line : lines) { 
+			if (!line.valid) {
+				return count;
+			}
+			else if(line.time < lines[min].time){ // can't be equal
+				min = count;
+			}
+			count++;
+		}
+		return min;
 	}
 }

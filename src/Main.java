@@ -20,6 +20,7 @@ public class Main {
 	static Cache L1instruction;
 	static Cache L2;
 	static byte[] RAM;
+	static int time;
 	
 	public static void main(String[] args) throws IOException {
 		
@@ -80,7 +81,7 @@ public class Main {
 		// not found? search L2 cache, found HIT
 		else if(L2.search(address, size)) {
 			L1Dmisses++; L2hits++;
-			putToCache(L1data, L2.recentlyUsedLine.data);
+			putToCache(L1data, L2.recentlyUsedLine.data, address);
 		}
 		else {
 			// not found? search the RAM, fetch it
@@ -97,7 +98,7 @@ public class Main {
 		// not found? search L2 cache, found HIT
 		else if(L2.search(address, size)) {
 			L1Imisses++; L2hits++;
-			putToCache(L1instruction, L2.recentlyUsedLine.data);
+			putToCache(L1instruction, L2.recentlyUsedLine.data, address);
 		}
 		else {
 			// not found? search the RAM, fetch it
@@ -144,12 +145,12 @@ public class Main {
 		for(int i = 0; i < blockSize; i++) {
 			fetchedData[i] = RAM[startingAddress + i];
 		}
-		putToCache(L2, fetchedData);
+		putToCache(L2, fetchedData, address);
 		if(byteType == src.byteType.data) {
-			putToCache(L1data, fetchedData);
+			putToCache(L1data, fetchedData, address);
 		} 
 		else if (byteType == src.byteType.instruction) {
-			putToCache(L1instruction, fetchedData);
+			putToCache(L1instruction, fetchedData, address);
 		}
 		return null;
 	}
@@ -161,11 +162,29 @@ public class Main {
 		}
 	}
 	
-	static void putToCache(Cache cache, byte[] block) { // TODO
-		// this should initialize lines
-		// and put them to their appropriate positions
-		// in cache's field cacheLines[set][whichever feasible]
-		// should handle evictions somehow
+	static void putToCache(Cache cache, byte[] block, int address) { // TODO
+		cache.tagAndSetIdentifier(address);
+		int tag = cache.searchedTag;
+		int set = cache.searchedSet; 
+		int lineNo = cache.availableLine(set);
+		Line line = new Line(true, block, tag, time++);
+		if(cache.cacheLines[set][lineNo].valid) {
+			// victim, eviction
+			switch(cache.type) {
+			case L1i:
+				L1Ievictions++;
+				break;
+			case L1d:
+				L1Devictions++;
+				break;
+			case L2:
+				L2evictions++;
+				break;
+			default: break;
+			}
+		}
+		cache.cacheLines[set][lineNo] = line;
+		// is it normal only putToCache initializes lines??
 	}
 	
 	static void initializeCaches(){

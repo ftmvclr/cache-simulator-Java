@@ -6,10 +6,11 @@ public class Line extends Cache {
 	int time; // to find the least recently used one
 	int tag;
 	
-	Line(boolean valid, byte[] data, int tag ){
+	Line(boolean valid, byte[] data, int tag, int time){
 		this.valid = valid;
 		this.data = data;
 		this.tag = tag;
+		this.time = time;
 	}
 	void overwriteDataInsideBlock(int offset, int size, byte[] newData){
 		for(int i = 0; i < newData.length; i++) {
