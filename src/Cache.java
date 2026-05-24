@@ -2,9 +2,12 @@ package src;
 enum cacheType {L1i, L1d, L2};
 
 public class Cache {
-	int s; int b; int E;
+	int s; int b; int E; // bit counts 
 	Line cacheLines[][];
 	cacheType type;
+	int tag;
+	int set;
+	int offset;
 	
 	Cache(int s, int b, int E, cacheType type){
 		this.s = s; this.b = b;
@@ -14,26 +17,22 @@ public class Cache {
 	}
 	Cache(){}
 	
-	boolean search(){
+	boolean search(int address, int size){
+		tagAndSetIdentifier(address); // filled the fields tag and set (and offset)
+		Line[] linesInCorrectSet = cacheLines[set];
+		for(Line line : linesInCorrectSet) {
+			if (line.tag == tag) {
+				return true;
+			}
+		}
 		return false;
 	}
 	
-	void dataLoad(){
-		
-	}
-	
-	void store() {
-		
-	}
-	
-	void instLoad() {
-		
-	}
-	
-	void modify() {
-		
-	}
-	private void tagAndSetIdentifier(int address) {
-		
+	void tagAndSetIdentifier(int address) {
+		offset = address & ((1 << b) - 1);  // instead of Math.pow
+		address = address >>> b;
+		set = address & ((1 << s) - 1); // instead of Maht.pow 2, s - 1
+		address = address >>> s;
+		tag = address;
 	}
 }

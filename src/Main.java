@@ -11,6 +11,9 @@ public class Main {
 	static int L1s; static int L2s; // how many bits to represent set count
 	static int L1b; static int L2b; // how many bits to represent block size (64 bytes would be 6 bits)
 	static int L1E; static int L2E; // number of lines per set
+	static int L1Ihits, L1Imisses, L1Ievictions;
+	static int L1Dhits, L1Dmisses, L1Devictions;
+	static int L2hits, L2misses, L2evictions;
 	static Cache L1data;
 	static Cache L1instruction;
 	static Cache L2;
@@ -48,21 +51,10 @@ public class Main {
 		
 		if (lastCommaIndex <= 10) {	// op, address, size | no data, L or I
 			if (op == 'L') {
-				// search the L1d cache, found? HIT 
-				if(L1data.search()) {
-					
-				}
-				// not found? search L2 cache, found HIT
-				else if(L2.search()) {
-					
-				}
-				// not found? search the RAM, fetch it
-				fetchRAM(address, size);
+				dataLoad(address, size);
 			}
 			else if(op == 'I') {
-				// search the L1i cache, found? HIT 
-				// not found? search L2 cache, found HIT
-				// not found? search the RAM, fetch it
+				instLoad(address, size);
 			}
 			else return; // error
 		}
@@ -70,15 +62,45 @@ public class Main {
 			String dataString = instruction.substring(15);
 			byte[] data = HexFormat.of().parseHex(dataString);
 			if(op == 'S') {
-				// search the L1d cache, found it? Write-HIT -> find the least recently used one somehow, overwrite
-				// not found? search L2 cache, found HIT
-				// not found? search the RAM, fetch it
+				store(address, size, data);
 			}
 			else if(op == 'M') {
-				// load followed by a store
+				modify();
 			}
 			else return; // error
 		}		
+	}
+	
+	static void dataLoad(int address, int size){
+		// search the L1d cache, found? HIT 
+		if(L1data.search(address, size)) {
+			L1Dhits++;
+		}
+		// not found? search L2 cache, found HIT
+		else if(L2.search(address, size)) {
+			L1Dmisses++; L2hits++;
+			putToCache(L1data);
+		}
+		else {
+			// not found? search the RAM, fetch it
+			L2misses++;
+			fetchRAM(address, size);
+		}
+	}
+	static void instLoad(int address, int size) {
+		// search the L1i cache, found? HIT 
+		// not found? search L2 cache, found HIT
+		// not found? search the RAM, fetch it
+	}
+	
+	static void store(int address, int size, byte[] data) {
+		// search the L1d cache, found it? Write-HIT -> find the least recently used one somehow, overwrite
+		// not found? search L2 cache, found HIT
+		// not found? search the RAM, fetch it
+	}
+	
+	static void modify() {
+		// load followed by a store
 	}
 	
 	static byte[] fetchRAM(int address, int size) {
@@ -90,6 +112,10 @@ public class Main {
 			fetchedData[i] = RAM[startingAddress + i];
 		}
 		return null;
+	}
+	
+	static void putToCache(Cache cache) {
+		
 	}
 	
 	static void initializeCaches(){
